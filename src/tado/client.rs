@@ -1,9 +1,13 @@
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::Error;
 use std::time::{Duration, Instant};
 use std::vec::Vec;
 
 use lazy_static::lazy_static;
 use log::{error, info};
 use reqwest;
+use std::fs;
 
 use super::error::AuthError;
 use super::model::{
@@ -12,6 +16,7 @@ use super::model::{
 };
 
 const AUTH_PENDING_MESSAGE: &str = "authorization_pending";
+const TOKENS_FILE: &str = "tokens.json";
 
 lazy_static! {
     // TODO: POST DEVICE - https://login.tado.com/oauth2/device
@@ -39,11 +44,7 @@ impl Client {
         Client::with_base_url(BASE_URL.clone(), HOPS_URL.clone(), client_id)
     }
 
-    fn with_base_url(
-        base_url: reqwest::Url,
-        hops_url: reqwest::Url,
-        client_id: String,
-    ) -> Client {
+    fn with_base_url(base_url: reqwest::Url, hops_url: reqwest::Url, client_id: String) -> Client {
         Client {
             http_client: reqwest::Client::new(),
             base_url,
@@ -67,6 +68,14 @@ impl Client {
     /// To avoid manual intervention, the method also attempts to complete the login challenge
     /// on behalf of the user.
     pub async fn authenticate(&mut self) -> Result<(), AuthError> {
+        self.load_tokens().expect("Loading tokens should not fail");
+
+        if let Ok(()) = self.refresh_authentication().await {
+            info!("Refreshed authentication tokens");
+
+            return Ok(());
+        }
+
         // Start device authentication flow.
         let start_params = [
             ("client_id", self.client_id.as_str()),
@@ -79,7 +88,10 @@ impl Client {
             .send()
             .await?;
         let start = resp.json::<AuthStartResponse>().await?;
-        info!("Started device authentication flow with URL {}", start.verification_uri_complete);
+        info!(
+            "Started device authentication flow with URL {}",
+            start.verification_uri_complete
+        );
 
         // TODO: run through login flow.
 
@@ -91,7 +103,10 @@ impl Client {
     async fn get(&self, url: reqwest::Url) -> Result<reqwest::Response, reqwest::Error> {
         self.http_client
             .get(url)
-            .header("Authorization", format!("Bearer {}", self.tokens.access_token))
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.tokens.access_token),
+            )
             .send()
             .await
     }
@@ -149,7 +164,9 @@ impl Client {
             .await?;
 
         let tokens = resp.json::<AuthTokensResponse>().await?;
-        self.set_tokens(tokens);
+        self.set_tokens(tokens)
+            .expect("Unable to write auth tokens");
+
         info!("API access tokens refreshed");
         Ok(())
     }
@@ -227,11 +244,28 @@ impl Client {
     }
 
     /// Set the API access tokens to use and manage related metadata.
-    fn set_tokens(&mut self, tokens: AuthTokensResponse) {
+    fn set_tokens(&mut self, tokens: AuthTokensResponse) -> Result<(), Error> {
         // Reduce the tokens validity slightly to refresh before they expire.
         let expires_in = tokens.expires_in - 10;
+
+        File::create(TOKENS_FILE)?
+            .write_all(serde_json::to_string(&tokens.clone()).unwrap().as_bytes())?;
+
         self.tokens = tokens;
         self.tokens_refresh_by = Instant::now() + Duration::from_secs(expires_in);
+
+        return Ok(());
+    }
+
+    fn load_tokens(&mut self) -> Result<(), Error> {
+        match fs::read_to_string(TOKENS_FILE) {
+            Ok(json) => {
+                self.tokens = serde_json::from_str::<AuthTokensResponse>(&json)?;
+
+                Ok(())
+            }
+            Err(_) => Ok(()),
+        }
     }
 
     async fn wait_for_tokens(&mut self, start: AuthStartResponse) -> Result<(), AuthError> {
@@ -286,9 +320,9 @@ mod tests {
     use crate::tado::model::{
         ActivityDataPointsHeatingPowerApiResponse, SensorDataPointsHumidityApiResponse,
         SensorDataPointsInsideTemperatureApiResponse, WeatherOutsideTemperatureApiResponse,
-        WeatherSolarIntensityApiResponse,
-        ZoneStateApiResponse, ZoneStateOpenWindowApiResponse, ZoneStateSensorDataPointsApiResponse,
-        ZoneStateSettingApiResponse, ZoneStateSettingTemperatureApiResponse,
+        WeatherSolarIntensityApiResponse, ZoneStateApiResponse, ZoneStateOpenWindowApiResponse,
+        ZoneStateSensorDataPointsApiResponse, ZoneStateSettingApiResponse,
+        ZoneStateSettingTemperatureApiResponse,
     };
 
     use rstest::*;
@@ -297,9 +331,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let client = Client::new(
-            "client_id".to_string(),
-        );
+        let client = Client::new("client_id".to_string());
 
         assert_eq!(client.client_id, "client_id");
         assert_eq!(client.base_url, *BASE_URL);

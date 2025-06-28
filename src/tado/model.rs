@@ -1,4 +1,4 @@
-use serde_derive::Deserialize;
+use serde_derive::{Serialize, Deserialize};
 
 #[derive(Deserialize, Debug)]
 pub struct AuthStartResponse {
@@ -13,7 +13,7 @@ pub struct AuthTokensErrorResponse {
     pub error: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthTokensResponse {
     pub access_token: String,
     pub expires_in: u64,
