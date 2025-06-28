@@ -60,14 +60,14 @@ lazy_static! {
 
 pub fn set_zones(zones: Vec<ZoneStateResponse>) {
     for zone in zones {
-        let device_type: String = zone.state_response.setting.deviceType;
+        let device_type: String = "tado".to_string();
 
         // The setting temperature may be null in the API response, if the
         // zone's heating mode is turned off. If the temperature setting is
         // absent, from the API response we'll simply not set its gauge values.
         if let Some(setting_temperature) = zone.state_response.setting.temperature {
             // setting temperature
-            let value: f64 = setting_temperature.celsius;
+            let value: f64 = setting_temperature.value;
             SETTING_TEMPERATURE
                 .with_label_values(&[zone.name.as_str(), device_type.as_str(), "celsius"])
                 .set(value);
@@ -77,25 +77,9 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
                 device_type.as_str(),
                 value
             );
-
-            let value: f64 = setting_temperature.fahrenheit;
-            SETTING_TEMPERATURE
-                .with_label_values(&[zone.name.as_str(), device_type.as_str(), "fahrenheit"])
-                .set(value);
-            info!(
-                "-> {} ({}) -> setting temperature (fahrenheit): {}",
-                zone.name,
-                device_type.as_str(),
-                value
-            );
         } else {
             info!(
                 "-> {} ({}) -> setting temperature (celsius): Off",
-                zone.name,
-                device_type.as_str()
-            );
-            info!(
-                "-> {} ({}) -> setting temperature (fahrenheit): Off",
                 zone.name,
                 device_type.as_str()
             );
@@ -127,24 +111,12 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
         // sensor temperature
         if let Some(inside_temperature) = zone.state_response.sensorDataPoints.insideTemperature {
             // celsius
-            let value: f64 = inside_temperature.celsius;
+            let value: f64 = inside_temperature.value;
             SENSOR_TEMPERATURE
                 .with_label_values(&[zone.name.as_str(), device_type.as_str(), "celsius"])
                 .set(value);
             info!(
                 "-> {} ({}) -> sensor temperature (celsius): {}",
-                zone.name,
-                device_type.as_str(),
-                value
-            );
-
-            // fahrenheit
-            let value: f64 = inside_temperature.fahrenheit;
-            SENSOR_TEMPERATURE
-                .with_label_values(&[zone.name.as_str(), device_type.as_str(), "fahrenheit"])
-                .set(value);
-            info!(
-                "-> {} ({}) -> sensor temperature (fahrenheit): {}",
                 zone.name,
                 device_type.as_str(),
                 value
@@ -166,7 +138,7 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
         }
 
         // heating power
-        if let Some(heating_power) = zone.state_response.activityDataPoints.heatingPower {
+        if let Some(heating_power) = zone.state_response.heatingPower {
             let value: f64 = heating_power.percentage;
             ACTIVITY_HEATING_POWER
                 .with_label_values(&[zone.name.as_str(), device_type.as_str()])
@@ -179,24 +151,24 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
             );
         }
 
-        // ac power
-        if let Some(ac_power) = zone.state_response.activityDataPoints.acPower {
-            let value: f64 = match ac_power.value.as_str() {
-                "ON" => 1.0,
-                "OFF" => 0.0,
-                _ => 0.0,
-            };
+        // // ac power
+        // if let Some(ac_power) = zone.state_response.activityDataPoints.acPower {
+        //     let value: f64 = match ac_power.value.as_str() {
+        //         "ON" => 1.0,
+        //         "OFF" => 0.0,
+        //         _ => 0.0,
+        //     };
 
-            ACTIVITY_AC_POWER
-                .with_label_values(&[zone.name.as_str(), device_type.as_str()])
-                .set(value);
-            info!(
-                "-> {} ({}) -> ac power: {}",
-                zone.name,
-                device_type.as_str(),
-                value
-            );
-        }
+        //     ACTIVITY_AC_POWER
+        //         .with_label_values(&[zone.name.as_str(), device_type.as_str()])
+        //         .set(value);
+        //     info!(
+        //         "-> {} ({}) -> ac power: {}",
+        //         zone.name,
+        //         device_type.as_str(),
+        //         value
+        //     );
+        // }
     }
 }
 

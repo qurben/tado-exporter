@@ -40,7 +40,8 @@ pub struct ZonesApiResponse {
 #[allow(non_snake_case)]
 pub struct ZoneStateApiResponse {
     pub setting: ZoneStateSettingApiResponse,
-    pub activityDataPoints: ZoneStateActivityDataPointsApiResponse,
+    // pub activityDataPoints: ZoneStateActivityDataPointsApiResponse,
+    pub heatingPower: Option<ActivityDataPointsHeatingPowerApiResponse>,
     pub sensorDataPoints: ZoneStateSensorDataPointsApiResponse,
     pub openWindow: Option<ZoneStateOpenWindowApiResponse>,
 }
@@ -57,15 +58,13 @@ pub struct ZoneStateOpenWindowApiResponse {
 #[derive(Deserialize, Debug, PartialEq)]
 #[allow(non_snake_case)]
 pub struct ZoneStateSettingApiResponse {
-    #[serde(rename = "type")]
-    pub deviceType: String,
+    pub power: String,
     pub temperature: Option<ZoneStateSettingTemperatureApiResponse>,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct ZoneStateSettingTemperatureApiResponse {
-    pub celsius: f64,
-    pub fahrenheit: f64,
+    pub value: f64,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -94,8 +93,7 @@ pub struct ZoneStateSensorDataPointsApiResponse {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct SensorDataPointsInsideTemperatureApiResponse {
-    pub celsius: f64,
-    pub fahrenheit: f64,
+    pub value: f64,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]

@@ -18,15 +18,15 @@ lazy_static! {
     static ref AUTH_START_URL: reqwest::Url = "https://login.tado.com/oauth2/device_authorize".parse().unwrap();
     static ref AUTH_TOKEN_URL: reqwest::Url = "https://login.tado.com/oauth2/token".parse().unwrap();
     pub static ref BASE_URL: reqwest::Url = "https://my.tado.com/api/v2/".parse().unwrap();
+    pub static ref HOPS_URL: reqwest::Url = "https://hops.tado.com/".parse().unwrap();
 }
 
 pub struct Client {
     http_client: reqwest::Client,
     base_url: reqwest::Url,
+    hops_url: reqwest::Url,
 
     // API Authentication information.
-    username: String,
-    password: String,
     client_id: String,
     tokens: AuthTokensResponse,
     tokens_refresh_by: Instant,
@@ -35,21 +35,19 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(username: String, password: String, client_id: String) -> Client {
-        Client::with_base_url(BASE_URL.clone(), username, password, client_id)
+    pub fn new(client_id: String) -> Client {
+        Client::with_base_url(BASE_URL.clone(), HOPS_URL.clone(), client_id)
     }
 
     fn with_base_url(
         base_url: reqwest::Url,
-        username: String,
-        password: String,
+        hops_url: reqwest::Url,
         client_id: String,
     ) -> Client {
         Client {
             http_client: reqwest::Client::new(),
             base_url,
-            username,
-            password,
+            hops_url,
             client_id,
             tokens: AuthTokensResponse {
                 access_token: String::default(),
@@ -106,8 +104,8 @@ impl Client {
     }
 
     async fn zones(&mut self) -> Result<Vec<ZonesApiResponse>, reqwest::Error> {
-        let endpoint = format!("/api/v2/homes/{}/zones", self.home_id);
-        let url = self.base_url.join(&endpoint).unwrap();
+        let endpoint = format!("homes/{}/rooms", self.home_id);
+        let url = self.hops_url.join(&endpoint).unwrap();
 
         let resp = self.get(url).await?;
 
@@ -115,8 +113,8 @@ impl Client {
     }
 
     async fn zone_state(&mut self, zone_id: i32) -> Result<ZoneStateApiResponse, reqwest::Error> {
-        let endpoint = format!("/api/v2/homes/{}/zones/{}/state", self.home_id, zone_id);
-        let url = self.base_url.join(&endpoint).unwrap();
+        let endpoint = format!("homes/{}/rooms/{}", self.home_id, zone_id);
+        let url = self.hops_url.join(&endpoint).unwrap();
 
         let resp = self.get(url).await?;
 
@@ -288,7 +286,7 @@ mod tests {
     use crate::tado::model::{
         ActivityDataPointsHeatingPowerApiResponse, SensorDataPointsHumidityApiResponse,
         SensorDataPointsInsideTemperatureApiResponse, WeatherOutsideTemperatureApiResponse,
-        WeatherSolarIntensityApiResponse, ZoneStateActivityDataPointsApiResponse,
+        WeatherSolarIntensityApiResponse,
         ZoneStateApiResponse, ZoneStateOpenWindowApiResponse, ZoneStateSensorDataPointsApiResponse,
         ZoneStateSettingApiResponse, ZoneStateSettingTemperatureApiResponse,
     };
@@ -300,13 +298,9 @@ mod tests {
     #[test]
     fn test_new() {
         let client = Client::new(
-            "username".to_string(),
-            "password".to_string(),
             "client_id".to_string(),
         );
 
-        assert_eq!(client.username, "username");
-        assert_eq!(client.password, "password");
         assert_eq!(client.client_id, "client_id");
         assert_eq!(client.base_url, *BASE_URL);
     }
@@ -315,13 +309,10 @@ mod tests {
     fn test_with_base_url() {
         let client = Client::with_base_url(
             "https://example.com".parse().unwrap(),
-            "username".to_string(),
-            "password".to_string(),
+            "https://example.com".parse().unwrap(),
             "client_id".to_string(),
         );
 
-        assert_eq!(client.username, "username");
-        assert_eq!(client.password, "password");
         assert_eq!(client.client_id, "client_id");
         assert_eq!(client.base_url, "https://example.com".parse().unwrap());
     }
@@ -379,8 +370,7 @@ mod tests {
 
         let client = Client::with_base_url(
             mock_server.uri().parse().unwrap(),
-            "username".to_string(),
-            "password".to_string(),
+            mock_server.uri().parse().unwrap(),
             "client_secret".to_string(),
         );
 
@@ -395,22 +385,17 @@ mod tests {
         case(
             r#"{
                 "setting":{
-                  "type":"tado",
+                  "power":"ON",
                   "temperature":{
-                    "celsius":21.53,
-                    "fahrenheit":70.75
+                    "value":21.53
                   }
                 },
-                "activityDataPoints":{
-                  "heatingPower":{
-                    "percentage":0.0
-                  },
-                  "acPower":null
+                "heatingPower":{
+                  "percentage":0.0
                 },
                 "sensorDataPoints":{
                   "insideTemperature":{
-                    "celsius":25.0,
-                    "fahrenheit":77.0
+                    "value":25.0
                   },
                   "humidity":{
                     "percentage":75.0
@@ -419,23 +404,18 @@ mod tests {
               }"#,
             ZoneStateApiResponse {
                 setting : ZoneStateSettingApiResponse {
-                    deviceType: "tado".to_string(),
+                    power: "ON".to_string(),
                     temperature: Some(ZoneStateSettingTemperatureApiResponse {
-                        celsius: 21.53,
-                        fahrenheit: 70.75
+                        value: 21.53,
                     })
                 },
-                activityDataPoints : ZoneStateActivityDataPointsApiResponse {
                     heatingPower : Some(ActivityDataPointsHeatingPowerApiResponse {
                         percentage: 0.0
                     }),
-                    acPower : None
-                },
                 openWindow: None,
                 sensorDataPoints: ZoneStateSensorDataPointsApiResponse {
                     insideTemperature : Some(SensorDataPointsInsideTemperatureApiResponse {
-                        celsius: 25.0,
-                        fahrenheit: 77.0
+                        value: 25.0,
                     }),
                     humidity : Some(SensorDataPointsHumidityApiResponse {
                         percentage: 75.0
@@ -446,10 +426,9 @@ mod tests {
         case(
             r#"{
                 "setting":{
-                  "type":"tado",
+                  "power":"ON",
                   "temperature":{
-                    "celsius":21.53,
-                    "fahrenheit":70.75
+                    "value":21.53
                   }
                 },
                 "openWindow":{
@@ -458,16 +437,12 @@ mod tests {
                     "expiry":"2022-11-21T11:30:32Z",
                     "remainingTimeInSeconds":662
                 },
-                "activityDataPoints":{
-                  "heatingPower":{
-                    "percentage":0.0
-                  },
-                  "acPower":null
+                "heatingPower":{
+                  "percentage":0.0
                 },
                 "sensorDataPoints":{
                   "insideTemperature":{
-                    "celsius":25.0,
-                    "fahrenheit":77.0
+                    "value":25.0
                   },
                   "humidity":{
                     "percentage":75.0
@@ -476,10 +451,9 @@ mod tests {
               }"#,
             ZoneStateApiResponse {
                 setting : ZoneStateSettingApiResponse {
-                    deviceType: "tado".to_string(),
+                    power: "ON".to_string(),
                     temperature: Some(ZoneStateSettingTemperatureApiResponse {
-                        celsius: 21.53,
-                        fahrenheit: 70.75
+                        value: 21.53
                     })
                 },
                 openWindow : Some(ZoneStateOpenWindowApiResponse {
@@ -488,16 +462,12 @@ mod tests {
                     expiry: "2022-11-21T11:30:32Z".to_string(),
                     remainingTimeInSeconds: 662
                 }),
-                activityDataPoints : ZoneStateActivityDataPointsApiResponse {
                     heatingPower : Some(ActivityDataPointsHeatingPowerApiResponse {
                         percentage: 0.0
                     }),
-                    acPower : None
-                },
                 sensorDataPoints: ZoneStateSensorDataPointsApiResponse {
                     insideTemperature : Some(SensorDataPointsInsideTemperatureApiResponse {
-                        celsius: 25.0,
-                        fahrenheit: 77.0
+                        value: 25.0
                     }),
                     humidity : Some(SensorDataPointsHumidityApiResponse {
                         percentage: 75.0
@@ -525,8 +495,7 @@ mod tests {
 
         let mut client = Client::with_base_url(
             mock_server.uri().parse().unwrap(),
-            "username".to_string(),
-            "passwored".to_string(),
+            mock_server.uri().parse().unwrap(),
             "client_secret".to_string(),
         );
 
