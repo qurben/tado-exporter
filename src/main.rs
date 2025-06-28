@@ -13,6 +13,7 @@ use std::time::Duration;
 use config::loader as config_loader;
 use tado::client::Client as TadoClient;
 use tado::metrics;
+use tokio::{join, spawn};
 
 #[tokio::main]
 async fn main() {
@@ -40,8 +41,7 @@ async fn main() {
 
 fn run_ticker(config: config_loader::Config) {
     tokio::spawn(async move {
-        let mut tado_client =
-            TadoClient::new(config.client_id);
+        let mut tado_client = TadoClient::new(config.client_id);
         if let Err(e) = tado_client.authenticate().await {
             error!("unable to authenticate: {e}");
             return;

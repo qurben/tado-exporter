@@ -248,8 +248,7 @@ impl Client {
         // Reduce the tokens validity slightly to refresh before they expire.
         let expires_in = tokens.expires_in - 10;
 
-        File::create(TOKENS_FILE)?
-            .write_all(serde_json::to_string(&tokens.clone())?.as_bytes())?;
+        File::create(TOKENS_FILE)?.write_all(serde_json::to_string(&tokens.clone())?.as_bytes())?;
 
         self.tokens = tokens;
         self.tokens_refresh_by = Instant::now() + Duration::from_secs(expires_in);
@@ -264,7 +263,7 @@ impl Client {
 
                 Ok(())
             }
-            Err(_) => Ok(())
+            Err(_) => Ok(()),
         }
     }
 
@@ -286,7 +285,7 @@ impl Client {
                 reqwest::StatusCode::OK => {
                     let tokens = resp.json::<AuthTokensResponse>().await?;
                     self.set_tokens(tokens)
-                    .expect("Unable to write auth tokens");
+                        .expect("Unable to write auth tokens");
                     info!("Device authentication flow completed");
                     return Ok(());
                 }

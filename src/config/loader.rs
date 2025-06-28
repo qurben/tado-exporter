@@ -22,9 +22,7 @@ pub fn load() -> Config {
         },
         client_id: match env::var("EXPORTER_CLIENT_ID") {
             Ok(v) => v,
-            Err(_) => {
-                "1bb50063-6b0c-4d11-bd99-387f4a91cc46".to_string()
-            }
+            Err(_) => "1bb50063-6b0c-4d11-bd99-387f4a91cc46".to_string(),
         },
     };
 
@@ -48,10 +46,7 @@ mod tests {
 
         // then we should load default values
         assert_eq!(config.ticker, 10);
-        assert_eq!(
-            config.client_id,
-            "1bb50063-6b0c-4d11-bd99-387f4a91cc46"
-        );
+        assert_eq!(config.client_id, "1bb50063-6b0c-4d11-bd99-387f4a91cc46");
 
         // given the following environment variable values
         env::set_var("EXPORTER_TICKER", "30");

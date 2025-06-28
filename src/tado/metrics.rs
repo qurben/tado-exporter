@@ -180,7 +180,7 @@ pub fn set_weather(weather_response: Option<WeatherApiResponse>) {
         WEATHER_SOLAR_INTENSITY
             .with_label_values(&[])
             .set(weather.solarIntensity.percentage);
-        info!( "-> setting solar intensity (percentage): {solar_intensity_percentage}");
+        info!("-> setting solar intensity (percentage): {solar_intensity_percentage}");
 
         // setting outside temperature
         let outside_temperature_celsius = weather.outsideTemperature.celsius;
