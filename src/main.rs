@@ -25,7 +25,7 @@ async fn main() {
 
     // set up http server
     let addr = ([0, 0, 0, 0], 9898).into();
-    info!("starting tado° exporter on address: {:?}", addr);
+    info!("starting tado° exporter on address: {addr:?}");
 
     let make_svc =
         make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(metrics::renderer)) });
@@ -34,7 +34,7 @@ async fn main() {
 
     // start HTTP server
     if let Err(e) = server.await {
-        error!("a server error occurred: {}", e);
+        error!("a server error occurred: {e}");
     }
 }
 
@@ -43,7 +43,7 @@ fn run_ticker(config: config_loader::Config) {
         let mut tado_client =
             TadoClient::new(config.client_id);
         if let Err(e) = tado_client.authenticate().await {
-            error!("unable to authenticate: {}", e);
+            error!("unable to authenticate: {e}");
             return;
         }
 
@@ -57,7 +57,7 @@ fn run_ticker(config: config_loader::Config) {
         loop {
             ticker.tick().await;
             if let Err(e) = tado_client.refresh_authentication().await {
-                error!("unable to refresh authentication tokens: {}", e);
+                error!("unable to refresh authentication tokens: {e}");
                 continue;
             }
 

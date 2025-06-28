@@ -23,9 +23,7 @@ impl std::fmt::Display for AuthError {
             AuthError::Http(inner) => std::fmt::Display::fmt(inner, f),
             AuthError::Timeout => write!(f, "device auth flow took too long to complete"),
             AuthError::UnexpectedStatus(status, url) => write!(
-                f, "unexpected auth API status {} for URL {}",
-                status, url,
-            ),
+                f, "unexpected auth API status {status} for URL {url}"),
         }
     }
 }

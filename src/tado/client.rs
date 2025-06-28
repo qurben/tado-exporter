@@ -177,7 +177,7 @@ impl Client {
             let me_response = match self.me().await {
                 Ok(resp) => resp,
                 Err(e) => {
-                    error!("unable to retrieve home identifier: {}", e);
+                    error!("unable to retrieve home identifier: {e}");
                     return Vec::new();
                 }
             };
@@ -189,7 +189,7 @@ impl Client {
         let zones_response = match self.zones().await {
             Ok(resp) => resp,
             Err(e) => {
-                error!("unable to retrieve home zones: {}", e);
+                error!("unable to retrieve home zones: {e}");
                 return Vec::new();
             }
         };
@@ -223,7 +223,7 @@ impl Client {
             let me_response = match self.me().await {
                 Ok(resp) => resp,
                 Err(e) => {
-                    error!("unable to retrieve home identifier: {}", e);
+                    error!("unable to retrieve home identifier: {e}");
                     return None;
                 }
             };
@@ -235,7 +235,7 @@ impl Client {
         let weather_response = match self.weather().await {
             Ok(resp) => resp,
             Err(e) => {
-                error!("unable to retrieve weather info: {}", e);
+                error!("unable to retrieve weather info: {e}");
                 return None;
             }
         };
@@ -249,12 +249,12 @@ impl Client {
         let expires_in = tokens.expires_in - 10;
 
         File::create(TOKENS_FILE)?
-            .write_all(serde_json::to_string(&tokens.clone()).unwrap().as_bytes())?;
+            .write_all(serde_json::to_string(&tokens.clone())?.as_bytes())?;
 
         self.tokens = tokens;
         self.tokens_refresh_by = Instant::now() + Duration::from_secs(expires_in);
 
-        return Ok(());
+        Ok(())
     }
 
     fn load_tokens(&mut self) -> Result<(), Error> {
@@ -264,7 +264,7 @@ impl Client {
 
                 Ok(())
             }
-            Err(_) => Ok(()),
+            Err(_) => Ok(())
         }
     }
 
@@ -285,7 +285,8 @@ impl Client {
             match resp.status() {
                 reqwest::StatusCode::OK => {
                     let tokens = resp.json::<AuthTokensResponse>().await?;
-                    self.set_tokens(tokens);
+                    self.set_tokens(tokens)
+                    .expect("Unable to write auth tokens");
                     info!("Device authentication flow completed");
                     return Ok(());
                 }

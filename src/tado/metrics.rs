@@ -180,10 +180,7 @@ pub fn set_weather(weather_response: Option<WeatherApiResponse>) {
         WEATHER_SOLAR_INTENSITY
             .with_label_values(&[])
             .set(weather.solarIntensity.percentage);
-        info!(
-            "-> setting solar intensity (percentage): {}",
-            solar_intensity_percentage
-        );
+        info!( "-> setting solar intensity (percentage): {solar_intensity_percentage}");
 
         // setting outside temperature
         let outside_temperature_celsius = weather.outsideTemperature.celsius;
@@ -192,18 +189,12 @@ pub fn set_weather(weather_response: Option<WeatherApiResponse>) {
         WEATHER_OUTSIDE_TEMPERATURE
             .with_label_values(&["celsius"])
             .set(outside_temperature_celsius);
-        info!(
-            "-> setting outside temperature (celsius): {}",
-            outside_temperature_celsius
-        );
+        info!("-> setting outside temperature (celsius): {outside_temperature_celsius}");
 
         WEATHER_OUTSIDE_TEMPERATURE
             .with_label_values(&["fahrenheit"])
             .set(outside_temperature_fahrenheit);
-        info!(
-            "-> setting outside temperature (fahrenheit): {}",
-            outside_temperature_fahrenheit
-        );
+        info!("-> setting outside temperature (fahrenheit): {outside_temperature_fahrenheit}");
     }
 }
 
