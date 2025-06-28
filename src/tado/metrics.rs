@@ -224,6 +224,7 @@ mod tests {
 
     #[test]
     fn test_set_weather_some() {
+        prometheus::gather();
         /*
         GIVEN a weather response
         WHEN set_weather is called
@@ -279,6 +280,7 @@ mod tests {
 
     #[test]
     fn test_set_weather_none() {
+        prometheus::gather();
         /*
         GIVEN no weather response
         WHEN set_weather is called
