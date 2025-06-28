@@ -488,7 +488,7 @@ mod tests {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("api/v2/homes/0/zones/0/state"))
+            .and(path("homes/0/rooms/0"))
             .respond_with(ResponseTemplate::new(200).set_body_raw(response_str, "application/json"))
             .mount(&mock_server)
             .await;
