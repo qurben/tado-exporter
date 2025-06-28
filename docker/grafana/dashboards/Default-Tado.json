@@ -3330,7 +3330,7 @@
       }
     ],
     "preload": false,
-    "refresh": "",
+    "refresh": "30s",
     "schemaVersion": 41,
     "tags": [
       "tado"
