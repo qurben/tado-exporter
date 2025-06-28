@@ -13,7 +13,6 @@ use std::time::Duration;
 use config::loader as config_loader;
 use tado::client::Client as TadoClient;
 use tado::metrics;
-use tokio::{join, spawn};
 
 #[tokio::main]
 async fn main() {
