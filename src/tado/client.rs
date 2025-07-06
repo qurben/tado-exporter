@@ -163,7 +163,7 @@ impl Client {
         let mut history = HashMap::new();
 
         for _ in 1..30 {
-            date = date - chrono::Duration::days(1);
+            date -= chrono::Duration::days(1);
             info!("Retrieving history for {}", date.format("%Y-%m-%d"));
 
             let today = self.history_date(date).await;

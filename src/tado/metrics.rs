@@ -256,9 +256,7 @@ pub async fn history(_req: Request<Body>) -> Result<Response<Body>, Infallible> 
 
     let body = Body::from(lines.join("\n") + "\n");
 
-    let response = response.body(body).unwrap();
-
-    return Ok(response);
+    Ok(response.body(body).unwrap())
 }
 
 #[cfg(test)]
