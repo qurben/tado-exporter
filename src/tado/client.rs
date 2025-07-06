@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::Error;
 use std::time::{Duration, Instant};
 use std::vec::Vec;
 
+use chrono::DateTime;
+use chrono::Utc;
 use lazy_static::lazy_static;
 use log::{error, info};
 use reqwest;
@@ -11,8 +14,9 @@ use std::fs;
 
 use super::error::AuthError;
 use super::model::{
-    AuthStartResponse, AuthTokensErrorResponse, AuthTokensResponse, MeApiResponse,
-    WeatherApiResponse, ZoneStateApiResponse, ZoneStateResponse, ZonesApiResponse,
+    AuthStartResponse, AuthTokensErrorResponse, AuthTokensResponse, HistoryReport, MeApiResponse,
+    WeatherApiResponse, ZoneDayReportApiResponse, ZoneStateApiResponse, ZoneStateResponse,
+    ZonesApiResponse,
 };
 
 const AUTH_PENDING_MESSAGE: &str = "authorization_pending";
@@ -145,6 +149,62 @@ impl Client {
         resp.json::<WeatherApiResponse>().await
     }
 
+    pub fn merge_history(
+        &mut self,
+        history: &mut HashMap<String, HistoryReport>,
+        history_to_add: HashMap<String, HistoryReport>,
+    ) {
+        for (key, report) in history_to_add {
+            match history.get_mut(&key) {
+                Some(r) => r.inside_temperature.extend(report.inside_temperature),
+                None => {
+                    history.insert(key, report);
+                }
+            }
+        }
+    }
+
+    pub async fn history(&mut self) -> HashMap<String, HistoryReport> {
+        // get last month
+        let mut date = Utc::now();
+
+        let mut history = HashMap::new();
+
+        for _ in 1..30 {
+            date = date - chrono::Duration::days(1);
+            info!("Retrieving history for {}", date.format("%Y-%m-%d"));
+
+            let today = self.history_date(date).await;
+
+            self.merge_history(&mut history, today)
+        }
+
+        history
+    }
+
+    pub async fn history_date(&mut self, date: DateTime<Utc>) -> HashMap<String, HistoryReport> {
+        let mut reports = HashMap::new();
+        for zone in self.retrieve_zones().await {
+            let endpoint = format!("/api/v2/homes/{}/zones/{}/dayReport", self.home_id, zone.id);
+            let mut url = self.base_url.join(&endpoint).unwrap();
+            url.set_query(Some(format!("date={}", date.format("%Y-%m-%d")).as_str()));
+
+            let resp = self.get(url).await.expect("Unable to connect");
+
+            let resp_json = resp.json::<ZoneDayReportApiResponse>().await.unwrap();
+
+            reports.insert(
+                zone.name.clone(),
+                HistoryReport {
+                    name: zone.name,
+                    inside_temperature: resp_json.measuredData.insideTemperature.dataPoints,
+                },
+            );
+        }
+
+        reports
+    }
+
     /// Refresh the API access token if it expired.
     pub async fn refresh_authentication(&mut self) -> Result<(), AuthError> {
         if Instant::now() < self.tokens_refresh_by {
@@ -208,6 +268,7 @@ impl Client {
 
             response.push(ZoneStateResponse {
                 name: zone.name,
+                id: zone.id,
                 state_response: zone_state_response,
             });
         }

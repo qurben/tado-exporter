@@ -6,6 +6,7 @@ mod tado;
 
 use env_logger::{Builder as LoggerBuilder, Env};
 use hyper::{service::make_service_fn, service::service_fn, Server};
+use hyper::{Body, Request, Response};
 use log::{error, info};
 use std::convert::Infallible;
 use std::time::Duration;
@@ -27,14 +28,22 @@ async fn main() {
     let addr = ([0, 0, 0, 0], 9898).into();
     info!("starting tado° exporter on address: {addr:?}");
 
-    let make_svc =
-        make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(metrics::renderer)) });
+    let make_svc = make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(route)) });
 
     let server = Server::bind(&addr).serve(make_svc);
 
     // start HTTP server
     if let Err(e) = server.await {
         error!("a server error occurred: {e}");
+    }
+}
+
+async fn route(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    info!("{}", req.uri());
+
+    match req.uri().path() {
+        "/history" => metrics::history(req).await,
+        _ => metrics::renderer(req).await,
     }
 }
 
@@ -52,6 +61,8 @@ fn run_ticker(config: config_loader::Config) {
         // This prevents drift as the ticker keeps counting down during refresh, unlike sleep.
         let mut ticker = tokio::time::interval(Duration::from_secs(config.ticker));
         ticker.tick().await;
+
+        metrics::set_history(tado_client.history().await);
 
         loop {
             ticker.tick().await;

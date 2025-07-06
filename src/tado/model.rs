@@ -112,7 +112,7 @@ pub struct WeatherSolarIntensityApiResponse {
     pub percentage: f64,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct WeatherOutsideTemperatureApiResponse {
     pub fahrenheit: f64,
     pub celsius: f64,
@@ -120,5 +120,81 @@ pub struct WeatherOutsideTemperatureApiResponse {
 
 pub struct ZoneStateResponse {
     pub name: String,
+    pub id: i32,
     pub state_response: ZoneStateApiResponse,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct TimeInterval {
+    pub from: String,
+    pub to: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct DataPoint<T> {
+    pub timestamp: String,
+    pub value: T,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct DataInterval {
+    pub from: String,
+    pub to: String,
+    pub value: bool,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[allow(non_snake_case)]
+#[serde(tag = "valueType")]
+pub struct ZoneDayReportMeasuredDataMeasuringDeviceConnectedApiResponse {
+    pub timeSeriesType: String,
+    pub valueType: String,
+    pub dataIntervals: Vec<DataInterval>,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[allow(non_snake_case)]
+pub struct ZoneDayReportMeasuredDataInsideTemperatureApiResponse {
+    pub timeSeriesType: String,
+    pub valueType: String,
+    pub min: WeatherOutsideTemperatureApiResponse,
+    pub max: WeatherOutsideTemperatureApiResponse,
+    pub dataPoints: Vec<DataPoint<WeatherOutsideTemperatureApiResponse>>,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[allow(non_snake_case)]
+pub struct ZoneDayReportMeasuredDataHumidityApiResponse {
+    pub timeSeriesType: String,
+    pub valueType: String,
+    pub percentageUnit: String,
+    pub min: f64,
+    pub max: f64,
+    pub dataPoints: Vec<DataPoint<f64>>,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[allow(non_snake_case)]
+pub struct ZoneDayReportMeasuredDataApiResponse {
+    pub measuringDeviceConnected: ZoneDayReportMeasuredDataMeasuringDeviceConnectedApiResponse,
+    pub insideTemperature: ZoneDayReportMeasuredDataInsideTemperatureApiResponse,
+    pub humidity: ZoneDayReportMeasuredDataHumidityApiResponse,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[allow(non_snake_case)]
+pub struct ZoneDayReportApiResponse {
+    pub zoneType: String,
+    pub interval: TimeInterval,
+    pub hoursInDay: i32,
+    pub measuredData: ZoneDayReportMeasuredDataApiResponse,
+    // pub stripes: Any,
+    // pub settings: Any,
+    // pub callForHeat: Any,
+    // pub weather: Any,
+}
+
+pub struct HistoryReport {
+    pub name: String,
+    pub inside_temperature: Vec<DataPoint<WeatherOutsideTemperatureApiResponse>>,
 }

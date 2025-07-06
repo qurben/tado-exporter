@@ -380,7 +380,7 @@
                 "type": "linear"
               },
               "showPoints": "never",
-              "spanNulls": false,
+              "spanNulls": true,
               "stacking": {
                 "group": "A",
                 "mode": "none"
@@ -1299,7 +1299,7 @@
                 "type": "linear"
               },
               "showPoints": "never",
-              "spanNulls": false,
+              "spanNulls": true,
               "stacking": {
                 "group": "A",
                 "mode": "none"
@@ -1726,6 +1726,7 @@
               "mode": "continuous-GrYlRd"
             },
             "custom": {
+              "axisPlacement": "auto",
               "fillOpacity": 70,
               "hideFrom": {
                 "legend": false,
@@ -1790,11 +1791,12 @@
           "rowHeight": 0.9,
           "showValue": "auto",
           "tooltip": {
+            "hideZeros": false,
             "mode": "single",
             "sort": "none"
           }
         },
-        "pluginVersion": "11.4.0",
+        "pluginVersion": "12.0.1+security-01",
         "targets": [
           {
             "datasource": {
@@ -1936,11 +1938,12 @@
             "showLegend": true
           },
           "tooltip": {
+            "hideZeros": false,
             "mode": "single",
             "sort": "none"
           }
         },
-        "pluginVersion": "11.4.0",
+        "pluginVersion": "12.0.1+security-01",
         "targets": [
           {
             "datasource": {
@@ -2056,7 +2059,7 @@
           "sizing": "auto",
           "text": {}
         },
-        "pluginVersion": "11.4.0",
+        "pluginVersion": "12.0.1+security-01",
         "targets": [
           {
             "datasource": {
@@ -2219,7 +2222,7 @@
             }
           ]
         },
-        "pluginVersion": "11.4.0",
+        "pluginVersion": "12.0.1+security-01",
         "targets": [
           {
             "datasource": {
@@ -3392,5 +3395,5 @@
     "timezone": "browser",
     "title": "tado° Dashboard",
     "uid": "umzs8YZRk",
-    "version": 1
+    "version": 2
   }
