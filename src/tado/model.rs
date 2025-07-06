@@ -37,9 +37,7 @@ pub struct ZoneStateSetting {
     pub temperature: Option<SingleTemperature>,
 }
 
-pub struct ZoneStateOpenWindow {
-
-}
+pub struct ZoneStateOpenWindow {}
 
 pub struct ZoneStateSensorDataPoints {
     pub inside_temperature: Option<SingleTemperature>,

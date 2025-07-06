@@ -263,7 +263,7 @@ pub async fn history(_req: Request<Body>) -> Result<Response<Body>, Infallible> 
 
 #[cfg(test)]
 mod tests {
-    use crate::tado::model::{Weather, SolarIntensity, Temperature};
+    use crate::tado::model::{SolarIntensity, Temperature, Weather};
 
     use super::*;
 
