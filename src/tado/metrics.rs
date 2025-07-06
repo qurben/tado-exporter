@@ -6,7 +6,7 @@ use std::{
 
 use crate::tado::model::HistoryReport;
 
-use super::model::{WeatherApiResponse, ZoneStateResponse};
+use super::model::{Weather, ZoneState};
 
 use hyper::{header::CONTENT_TYPE, Body, Request, Response};
 use lazy_static::lazy_static;
@@ -68,14 +68,14 @@ lazy_static! {
         Arc::new(Mutex::new(HashMap::new()));
 }
 
-pub fn set_zones(zones: Vec<ZoneStateResponse>) {
+pub fn set_zones(zones: Vec<ZoneState>) {
     for zone in zones {
         let device_type: String = "tado".to_string();
 
         // The setting temperature may be null in the API response, if the
         // zone's heating mode is turned off. If the temperature setting is
         // absent, from the API response we'll simply not set its gauge values.
-        if let Some(setting_temperature) = zone.state_response.setting.temperature {
+        if let Some(setting_temperature) = zone.setting.temperature {
             // setting temperature
             let value: f64 = setting_temperature.value;
             SETTING_TEMPERATURE
@@ -96,7 +96,7 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
         }
 
         // If openWindowDetected is not None, this means that a window is open.
-        if zone.state_response.openWindow.is_some() {
+        if zone.open_window.is_some() {
             info!(
                 "-> {} ({}) -> window opened: {}",
                 zone.name,
@@ -119,7 +119,7 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
         }
 
         // sensor temperature
-        if let Some(inside_temperature) = zone.state_response.sensorDataPoints.insideTemperature {
+        if let Some(inside_temperature) = zone.sensor_data_points.inside_temperature {
             // celsius
             let value: f64 = inside_temperature.value;
             SENSOR_TEMPERATURE
@@ -134,7 +134,7 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
         }
 
         // sensor humidity
-        if let Some(humidity) = zone.state_response.sensorDataPoints.humidity {
+        if let Some(humidity) = zone.sensor_data_points.humidity {
             let value: f64 = humidity.percentage;
             SENSOR_HUMIDITY_PERCENTAGE
                 .with_label_values(&[zone.name.as_str(), device_type.as_str()])
@@ -148,7 +148,7 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
         }
 
         // heating power
-        if let Some(heating_power) = zone.state_response.heatingPower {
+        if let Some(heating_power) = zone.heating_power {
             let value: f64 = heating_power.percentage;
             ACTIVITY_HEATING_POWER
                 .with_label_values(&[zone.name.as_str(), device_type.as_str()])
@@ -182,19 +182,19 @@ pub fn set_zones(zones: Vec<ZoneStateResponse>) {
     }
 }
 
-pub fn set_weather(weather_response: Option<WeatherApiResponse>) {
+pub fn set_weather(weather_response: Option<Weather>) {
     if let Some(weather) = weather_response {
         // setting solar intensity
-        let solar_intensity_percentage = weather.solarIntensity.percentage;
+        let solar_intensity_percentage = weather.solar_intensity.percentage;
 
         WEATHER_SOLAR_INTENSITY
             .with_label_values(&[])
-            .set(weather.solarIntensity.percentage);
+            .set(weather.solar_intensity.percentage);
         info!("-> setting solar intensity (percentage): {solar_intensity_percentage}");
 
         // setting outside temperature
-        let outside_temperature_celsius = weather.outsideTemperature.celsius;
-        let outside_temperature_fahrenheit = weather.outsideTemperature.fahrenheit;
+        let outside_temperature_celsius = weather.outside_temperature.celsius;
+        let outside_temperature_fahrenheit = weather.outside_temperature.fahrenheit;
 
         WEATHER_OUTSIDE_TEMPERATURE
             .with_label_values(&["celsius"])
@@ -263,9 +263,7 @@ pub async fn history(_req: Request<Body>) -> Result<Response<Body>, Infallible> 
 
 #[cfg(test)]
 mod tests {
-    use crate::tado::model::{
-        WeatherOutsideTemperatureApiResponse, WeatherSolarIntensityApiResponse,
-    };
+    use crate::tado::model::{Weather, SolarIntensity, Temperature};
 
     use super::*;
 
@@ -279,9 +277,9 @@ mod tests {
         */
 
         // GIVEN
-        let weather_response = WeatherApiResponse {
-            solarIntensity: WeatherSolarIntensityApiResponse { percentage: 100.0 },
-            outsideTemperature: WeatherOutsideTemperatureApiResponse {
+        let weather_response = Weather {
+            solar_intensity: SolarIntensity { percentage: 100.0 },
+            outside_temperature: Temperature {
                 celsius: 20.0,
                 fahrenheit: 68.0,
             },

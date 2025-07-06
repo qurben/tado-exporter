@@ -13,10 +13,11 @@ use reqwest;
 use std::fs;
 
 use super::error::AuthError;
-use super::model::{
-    AuthStartResponse, AuthTokensErrorResponse, AuthTokensResponse, HistoryReport, MeApiResponse,
-    WeatherApiResponse, ZoneDayReportApiResponse, ZoneStateApiResponse, ZoneStateResponse,
-    ZonesApiResponse,
+use super::model::{HistoryReport, Weather, ZoneState};
+
+use super::api::{
+    AuthStartResponse, AuthTokensErrorResponse, AuthTokensResponse, MeApiResponse,
+    WeatherApiResponse, ZoneDayReportApiResponse, ZonesApiResponse,
 };
 
 const AUTH_PENDING_MESSAGE: &str = "authorization_pending";
@@ -131,15 +132,6 @@ impl Client {
         resp.json::<Vec<ZonesApiResponse>>().await
     }
 
-    async fn zone_state(&mut self, zone_id: i32) -> Result<ZoneStateApiResponse, reqwest::Error> {
-        let endpoint = format!("homes/{}/rooms/{}", self.home_id, zone_id);
-        let url = self.hops_url.join(&endpoint).unwrap();
-
-        let resp = self.get(url).await?;
-
-        resp.json::<ZoneStateApiResponse>().await
-    }
-
     async fn weather(&self) -> Result<WeatherApiResponse, reqwest::Error> {
         let endpoint = format!("homes/{}/weather/", self.home_id);
         let url = self.base_url.join(&endpoint).unwrap();
@@ -197,7 +189,7 @@ impl Client {
                 zone.name.clone(),
                 HistoryReport {
                     name: zone.name,
-                    inside_temperature: resp_json.measuredData.insideTemperature.dataPoints,
+                    inside_temperature: resp_json.convert_inside_temperature(),
                 },
             );
         }
@@ -231,7 +223,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn retrieve_zones(&mut self) -> Vec<ZoneStateResponse> {
+    pub async fn retrieve_zones(&mut self) -> Vec<ZoneState> {
         // retrieve home details (only if we don't already have a home identifier)
         if self.home_id == 0 {
             let me_response = match self.me().await {
@@ -254,29 +246,18 @@ impl Client {
             }
         };
 
-        let mut response = Vec::<ZoneStateResponse>::new();
+        let mut response = Vec::<ZoneState>::new();
 
         for zone in zones_response {
             info!("retrieving zone details for {}...", zone.name);
-            let zone_state_response = match self.zone_state(zone.id).await {
-                Ok(resp) => resp,
-                Err(e) => {
-                    error!("unable to retrieve home zone '{}' state: {}", zone.name, e);
-                    return Vec::new();
-                }
-            };
 
-            response.push(ZoneStateResponse {
-                name: zone.name,
-                id: zone.id,
-                state_response: zone_state_response,
-            });
+            response.push(zone.convert());
         }
 
         response
     }
 
-    pub async fn retrieve_weather(&mut self) -> Option<WeatherApiResponse> {
+    pub async fn retrieve_weather(&mut self) -> Option<Weather> {
         info!("retrieving weather details ...");
 
         // retrieve home details (only if we don't already have a home identifier)
@@ -301,7 +282,7 @@ impl Client {
             }
         };
 
-        Some(weather_response)
+        Some(weather_response.convert())
     }
 
     /// Set the API access tokens to use and manage related metadata.
@@ -378,12 +359,8 @@ impl Client {
 mod tests {
     use super::*;
 
-    use crate::tado::model::{
-        ActivityDataPointsHeatingPowerApiResponse, SensorDataPointsHumidityApiResponse,
-        SensorDataPointsInsideTemperatureApiResponse, WeatherOutsideTemperatureApiResponse,
-        WeatherSolarIntensityApiResponse, ZoneStateApiResponse, ZoneStateOpenWindowApiResponse,
-        ZoneStateSensorDataPointsApiResponse, ZoneStateSettingApiResponse,
-        ZoneStateSettingTemperatureApiResponse,
+    use crate::tado::api::{
+        WeatherOutsideTemperatureApiResponse, WeatherSolarIntensityApiResponse,
     };
 
     use rstest::*;
@@ -469,131 +446,6 @@ mod tests {
 
         // WHEN
         let actual = client.weather().await.unwrap();
-
-        // THEN
-        assert_eq!(actual, expected);
-    }
-
-    #[rstest(response_str, expected,
-        case(
-            r#"{
-                "setting":{
-                  "power":"ON",
-                  "temperature":{
-                    "value":21.53
-                  }
-                },
-                "heatingPower":{
-                  "percentage":0.0
-                },
-                "sensorDataPoints":{
-                  "insideTemperature":{
-                    "value":25.0
-                  },
-                  "humidity":{
-                    "percentage":75.0
-                  }
-                }
-              }"#,
-            ZoneStateApiResponse {
-                setting : ZoneStateSettingApiResponse {
-                    power: "ON".to_string(),
-                    temperature: Some(ZoneStateSettingTemperatureApiResponse {
-                        value: 21.53,
-                    })
-                },
-                    heatingPower : Some(ActivityDataPointsHeatingPowerApiResponse {
-                        percentage: 0.0
-                    }),
-                openWindow: None,
-                sensorDataPoints: ZoneStateSensorDataPointsApiResponse {
-                    insideTemperature : Some(SensorDataPointsInsideTemperatureApiResponse {
-                        value: 25.0,
-                    }),
-                    humidity : Some(SensorDataPointsHumidityApiResponse {
-                        percentage: 75.0
-                    })
-                }
-            }
-        ),
-        case(
-            r#"{
-                "setting":{
-                  "power":"ON",
-                  "temperature":{
-                    "value":21.53
-                  }
-                },
-                "openWindow":{
-                    "detectedTime":"2022-11-21T11:15:32Z",
-                    "durationInSeconds":900,
-                    "expiry":"2022-11-21T11:30:32Z",
-                    "remainingTimeInSeconds":662
-                },
-                "heatingPower":{
-                  "percentage":0.0
-                },
-                "sensorDataPoints":{
-                  "insideTemperature":{
-                    "value":25.0
-                  },
-                  "humidity":{
-                    "percentage":75.0
-                  }
-                }
-              }"#,
-            ZoneStateApiResponse {
-                setting : ZoneStateSettingApiResponse {
-                    power: "ON".to_string(),
-                    temperature: Some(ZoneStateSettingTemperatureApiResponse {
-                        value: 21.53
-                    })
-                },
-                openWindow : Some(ZoneStateOpenWindowApiResponse {
-                    detectedTime: "2022-11-21T11:15:32Z".to_string(),
-                    durationInSeconds: 900,
-                    expiry: "2022-11-21T11:30:32Z".to_string(),
-                    remainingTimeInSeconds: 662
-                }),
-                    heatingPower : Some(ActivityDataPointsHeatingPowerApiResponse {
-                        percentage: 0.0
-                    }),
-                sensorDataPoints: ZoneStateSensorDataPointsApiResponse {
-                    insideTemperature : Some(SensorDataPointsInsideTemperatureApiResponse {
-                        value: 25.0
-                    }),
-                    humidity : Some(SensorDataPointsHumidityApiResponse {
-                        percentage: 75.0
-                    })
-                }
-            }
-        )
-    )]
-    #[actix_rt::test]
-    async fn test_zone_state(response_str: &str, expected: ZoneStateApiResponse) {
-        /*
-        GIVEN an OSM client
-        WHEN calling the zone_state() function
-        THEN returns the zone state
-        */
-
-        // GIVEN
-        let mock_server = MockServer::start().await;
-
-        Mock::given(method("GET"))
-            .and(path("homes/0/rooms/0"))
-            .respond_with(ResponseTemplate::new(200).set_body_raw(response_str, "application/json"))
-            .mount(&mock_server)
-            .await;
-
-        let mut client = Client::with_base_url(
-            mock_server.uri().parse().unwrap(),
-            mock_server.uri().parse().unwrap(),
-            "client_secret".to_string(),
-        );
-
-        // WHEN
-        let actual = client.zone_state(0).await.unwrap();
 
         // THEN
         assert_eq!(actual, expected);
