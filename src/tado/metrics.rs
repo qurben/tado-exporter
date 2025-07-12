@@ -249,14 +249,18 @@ pub async fn history(_req: Request<Body>) -> Result<Response<Body>, Infallible> 
                 datapoint.value.celsius,
                 date.timestamp()
             ));
+            lines.push(format!(
+                "tado_sensor_temperature_value{{type=\"tado\",unit=\"fahrenheit\",zone=\"{}\"}} {} {}",
+                zone.name,
+                datapoint.value.fahrenheit,
+                date.timestamp()
+            ));
         }
     }
 
     lines.push("# EOF".to_string());
 
-    let body = Body::from(lines.join("\n") + "\n");
-
-    Ok(response.body(body).unwrap())
+    Ok(response.body(Body::from(lines.join("\n") + "\n")).unwrap())
 }
 
 #[cfg(test)]

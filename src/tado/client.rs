@@ -296,14 +296,12 @@ impl Client {
     }
 
     fn load_tokens(&mut self) -> Result<(), Error> {
-        match fs::read_to_string(TOKENS_FILE) {
-            Ok(json) => {
-                self.tokens = serde_json::from_str::<AuthTokensResponse>(&json)?;
-
-                Ok(())
-            }
-            Err(_) => Ok(()),
+        if let Some(json) = fs::read_to_string(TOKENS_FILE).ok() {
+            // Ignore if file is not there
+            self.tokens = serde_json::from_str::<AuthTokensResponse>(&json)?;
         }
+
+        Ok(())
     }
 
     async fn wait_for_tokens(&mut self, start: AuthStartResponse) -> Result<(), AuthError> {
