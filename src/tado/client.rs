@@ -296,7 +296,7 @@ impl Client {
     }
 
     fn load_tokens(&mut self) -> Result<(), Error> {
-        if let Some(json) = fs::read_to_string(TOKENS_FILE).ok() {
+        if let Ok(json) = fs::read_to_string(TOKENS_FILE) {
             // Ignore if file is not there
             self.tokens = serde_json::from_str::<AuthTokensResponse>(&json)?;
         }
