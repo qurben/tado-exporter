@@ -45,7 +45,7 @@ mod tests {
         let config = load();
 
         // then we should load default values
-        assert_eq!(config.ticker, 10);
+        assert_eq!(config.ticker, 60);
         assert_eq!(config.client_id, "1bb50063-6b0c-4d11-bd99-387f4a91cc46");
 
         // given the following environment variable values
