@@ -48,7 +48,7 @@ async fn route(req: Request<Body>) -> Result<Response<Body>, Infallible> {
 
 fn run_ticker(config: config_loader::Config) {
     tokio::spawn(async move {
-        let mut tado_client = TadoClient::new(config.client_id);
+        let mut tado_client = TadoClient::new(config.client_id, config.token_file);
         if let Err(e) = tado_client.authenticate().await {
             error!("unable to authenticate: {e}");
             return;

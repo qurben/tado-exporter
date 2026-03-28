@@ -18,7 +18,6 @@ use super::api::{
 };
 
 const AUTH_PENDING_MESSAGE: &str = "authorization_pending";
-const TOKENS_FILE: &str = ".tado_token";
 
 lazy_static! {
     // TODO: POST DEVICE - https://login.tado.com/oauth2/device
@@ -35,6 +34,7 @@ pub struct Client {
 
     // API Authentication information.
     client_id: String,
+    token_file :String,
     access_token: String,
     refresh_token: String,
     tokens_refresh_by: Instant,
@@ -43,16 +43,17 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(client_id: String) -> Client {
-        Client::with_base_url(BASE_URL.clone(), HOPS_URL.clone(), client_id)
+    pub fn new(client_id: String, token_file: String) -> Client {
+        Client::with_base_url(BASE_URL.clone(), HOPS_URL.clone(), client_id, token_file)
     }
 
-    fn with_base_url(base_url: reqwest::Url, hops_url: reqwest::Url, client_id: String) -> Client {
+    fn with_base_url(base_url: reqwest::Url, hops_url: reqwest::Url, client_id: String, token_file: String) -> Client {
         Client {
             http_client: reqwest::Client::new(),
             base_url,
             hops_url,
             client_id,
+            token_file,
             access_token: String::default(),
             refresh_token: String::default(),
             tokens_refresh_by: Instant::now(),
@@ -237,7 +238,7 @@ impl Client {
         // Reduce the tokens validity slightly to refresh before they expire.
         let expires_in = tokens.expires_in - 10;
 
-        File::create(TOKENS_FILE)?.write_all((&tokens.refresh_token.clone()).as_bytes())?;
+        File::create(&self.token_file)?.write_all((&tokens.refresh_token.clone()).as_bytes())?;
 
         self.access_token = tokens.access_token;
         self.refresh_token = tokens.refresh_token;
@@ -247,7 +248,7 @@ impl Client {
     }
 
     fn load_tokens(&mut self) -> Result<(), Error> {
-        if let Ok(json) = fs::read_to_string(TOKENS_FILE) {
+        if let Ok(json) = fs::read_to_string(&self.token_file) {
             // Ignore if file is not there
             self.refresh_token = json;
 
@@ -321,7 +322,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let client = Client::new("client_id".to_string());
+        let client = Client::new("client_id".to_string(), ".token_file".to_string());
 
         assert_eq!(client.client_id, "client_id");
         assert_eq!(client.base_url, *BASE_URL);
@@ -333,6 +334,7 @@ mod tests {
             "https://example.com".parse().unwrap(),
             "https://example.com".parse().unwrap(),
             "client_id".to_string(),
+            ".token_file".to_string()
         );
 
         assert_eq!(client.client_id, "client_id");
@@ -394,6 +396,7 @@ mod tests {
             mock_server.uri().parse().unwrap(),
             mock_server.uri().parse().unwrap(),
             "client_secret".to_string(),
+            ".token_file".to_string()
         );
 
         // WHEN

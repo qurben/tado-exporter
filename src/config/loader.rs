@@ -3,6 +3,7 @@ use std::env;
 pub struct Config {
     pub ticker: u64,
     pub client_id: String,
+    pub token_file: String,
 }
 
 impl Config {
@@ -24,6 +25,10 @@ pub fn load() -> Config {
             Ok(v) => v,
             Err(_) => "1bb50063-6b0c-4d11-bd99-387f4a91cc46".to_string(),
         },
+        token_file: match env::var("EXPORTER_TOKEN_FILE") {
+            Ok(v) => v,
+            Err(_) => ".tado_token".to_string(),
+        },
     };
 
     config.print();
@@ -40,6 +45,7 @@ mod tests {
         // Given no env variable are set
         env::remove_var("EXPORTER_TICKER");
         env::remove_var("EXPORTER_CLIENT_ID");
+        env::remove_var("EXPORTER_TOKEN_FILE");
 
         // when
         let config = load();
@@ -47,10 +53,12 @@ mod tests {
         // then we should load default values
         assert_eq!(config.ticker, 60);
         assert_eq!(config.client_id, "1bb50063-6b0c-4d11-bd99-387f4a91cc46");
+        assert_eq!(config.token_file, ".tado_token");
 
         // given the following environment variable values
         env::set_var("EXPORTER_TICKER", "30");
         env::set_var("EXPORTER_CLIENT_ID", "client-123");
+        env::set_var("EXPORTER_TOKEN_FILE", "my_token_file");
 
         // when
         let config = load();
@@ -58,5 +66,6 @@ mod tests {
         // then we should have these values set
         assert_eq!(config.ticker, 30);
         assert_eq!(config.client_id, "client-123");
+        assert_eq!(config.token_file, "my_token_file");
     }
 }

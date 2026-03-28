@@ -67,9 +67,7 @@ Client ID: 1bb50063-6b0c-4d11-bd99-387f4a91cc46
 [2020-02-29T08:56:19Z INFO  tado_exporter] starting tado° exporter on address: V4(0.0.0.0:9898)
 [2026-03-28T09:40:21Z INFO  tado_exporter::tado::client] Started device authentication flow with URL https://login.tado.com/oauth2/device?user_code=XXXXX
 [2026-03-28T09:40:21Z INFO  tado_exporter::tado::client] Device authentication flow still pending, will retry. URL https://login.tado.com/oauth2/device?user_code=XXXXX
-
 [2026-03-28T09:40:26Z INFO  tado_exporter::tado::client] Device authentication flow still pending, will retry. URL https://login.tado.com/oauth2/device?user_code=XXXXX
-
 [2026-03-28T09:40:31Z INFO  tado_exporter::tado::client] Device authentication flow completed
 [2020-02-29T08:56:30Z INFO  tado_exporter::tado::client] retrieving zone details for Office...
 [2020-02-29T08:56:30Z INFO  tado_exporter::tado::client] retrieving zone details for Kitchen...
@@ -115,8 +113,7 @@ scrape_configs:
 
 | Environment variable name    | Description                                                                                |
 |:----------------------------:|--------------------------------------------------------------------------------------------|
-| EXPORTER_USERNAME      | Required. This represent your tado° account username/email                                       |
-| EXPORTER_PASSWORD      | Required. This represent your tado° account password                                             |
+| EXPORTER_TOKEN_FILE    | Optional (default: .tado_token). Location of the file to store the tado° refresh token           |
 | EXPORTER_CLIENT_SECRET | Optional. This represent your tado° account client secret, using default value seems to work     |
 | EXPORTER_TICKER        | Optional (default: 10). This represent the number of seconds the exporter will look for new data |
 | RUST_LOG               | Optional (default: info). This describes the log level (see https://docs.rs/env_logger/)         |
