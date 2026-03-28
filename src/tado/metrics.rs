@@ -1,10 +1,4 @@
-use std::{
-    collections::HashMap,
-    convert::Infallible,
-    sync::{Arc, Mutex},
-};
-
-use crate::tado::model::HistoryReport;
+use std::convert::Infallible;
 
 use super::model::{Weather, ZoneState};
 
@@ -12,8 +6,6 @@ use hyper::{header::CONTENT_TYPE, Body, Request, Response};
 use lazy_static::lazy_static;
 use log::info;
 use prometheus::{Encoder, GaugeVec, TextEncoder};
-
-use chrono::DateTime;
 
 lazy_static! {
     pub static ref ACTIVITY_HEATING_POWER: GaugeVec = register_gauge_vec!(
@@ -64,8 +56,6 @@ lazy_static! {
         &["zone", "type"]
     )
     .unwrap();
-    pub static ref HISTORY: Arc<Mutex<HashMap<String, HistoryReport>>> =
-        Arc::new(Mutex::new(HashMap::new()));
 }
 
 pub fn set_zones(zones: Vec<ZoneState>) {
@@ -222,45 +212,6 @@ pub async fn renderer(_req: Request<Body>) -> Result<Response<Body>, Infallible>
         .unwrap();
 
     Ok(response)
-}
-
-pub fn set_history(history: HashMap<String, HistoryReport>) {
-    let mut history_map = HISTORY.lock().expect("Unable to lock history");
-
-    for (key, value) in history {
-        history_map.insert(key, value);
-    }
-}
-
-pub async fn history(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    info!("Retrieving history");
-    let response = Response::builder()
-        .status(200)
-        .header(CONTENT_TYPE, "text/plain");
-
-    let history_map = HISTORY.lock().expect("Unable to lock history");
-    let mut lines = Vec::new();
-    for (_, zone) in history_map.iter() {
-        for datapoint in zone.inside_temperature.iter() {
-            let date = DateTime::parse_from_rfc3339(&datapoint.timestamp).unwrap();
-            lines.push(format!(
-                "tado_sensor_temperature_value{{type=\"tado\",unit=\"celsius\",zone=\"{}\"}} {} {}",
-                zone.name,
-                datapoint.value.celsius,
-                date.timestamp()
-            ));
-            lines.push(format!(
-                "tado_sensor_temperature_value{{type=\"tado\",unit=\"fahrenheit\",zone=\"{}\"}} {} {}",
-                zone.name,
-                datapoint.value.fahrenheit,
-                date.timestamp()
-            ));
-        }
-    }
-
-    lines.push("# EOF".to_string());
-
-    Ok(response.body(Body::from(lines.join("\n") + "\n")).unwrap())
 }
 
 #[cfg(test)]

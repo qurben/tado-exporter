@@ -26,7 +26,6 @@ pub struct HeatingPower {
 
 pub struct ZoneState {
     pub name: String,
-    pub id: i32,
     pub setting: ZoneStateSetting,
     pub heating_power: Option<HeatingPower>,
     pub sensor_data_points: ZoneStateSensorDataPoints,
@@ -42,14 +41,4 @@ pub struct ZoneStateOpenWindow {}
 pub struct ZoneStateSensorDataPoints {
     pub inside_temperature: Option<SingleTemperature>,
     pub humidity: Option<Humidity>,
-}
-
-pub struct DataPoint<T> {
-    pub timestamp: String,
-    pub value: T,
-}
-
-pub struct HistoryReport {
-    pub name: String,
-    pub inside_temperature: Vec<DataPoint<Temperature>>,
 }

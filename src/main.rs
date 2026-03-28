@@ -42,7 +42,6 @@ async fn route(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     info!("{}", req.uri());
 
     match req.uri().path() {
-        "/history" => metrics::history(req).await,
         _ => metrics::renderer(req).await,
     }
 }

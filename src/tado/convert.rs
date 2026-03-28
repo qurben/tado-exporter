@@ -3,12 +3,12 @@ use super::{
         ActivityDataPointsHeatingPowerApiResponse, SensorDataPointsHumidityApiResponse,
         SensorDataPointsInsideTemperatureApiResponse, WeatherApiResponse,
         WeatherOutsideTemperatureApiResponse, WeatherSolarIntensityApiResponse,
-        ZoneDayReportApiResponse, ZoneStateOpenWindowApiResponse,
+        ZoneStateOpenWindowApiResponse,
         ZoneStateSensorDataPointsApiResponse, ZoneStateSettingApiResponse,
         ZoneStateSettingTemperatureApiResponse, ZonesApiResponse,
     },
     model::{
-        DataPoint, HeatingPower, Humidity, SingleTemperature, SolarIntensity, Temperature, Weather,
+        HeatingPower, Humidity, SingleTemperature, SolarIntensity, Temperature, Weather,
         ZoneState, ZoneStateOpenWindow, ZoneStateSensorDataPoints, ZoneStateSetting,
     },
 };
@@ -17,7 +17,6 @@ impl ZonesApiResponse {
     pub fn convert(&self) -> ZoneState {
         ZoneState {
             name: self.name.clone(),
-            id: self.id,
             setting: self.setting.convert(),
             heating_power: self.heatingPower.as_ref().map(|f| f.convert()),
             sensor_data_points: self.sensorDataPoints.convert(),
@@ -83,20 +82,6 @@ impl WeatherOutsideTemperatureApiResponse {
             celsius: self.celsius,
             fahrenheit: self.fahrenheit,
         }
-    }
-}
-
-impl ZoneDayReportApiResponse {
-    pub fn convert_inside_temperature(&self) -> Vec<DataPoint<Temperature>> {
-        self.measuredData
-            .insideTemperature
-            .dataPoints
-            .iter()
-            .map(|f| DataPoint {
-                timestamp: f.timestamp.clone(),
-                value: f.value.convert(),
-            })
-            .collect()
     }
 }
 

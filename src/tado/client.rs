@@ -1,23 +1,20 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::Error;
 use std::time::{Duration, Instant};
 use std::vec::Vec;
 
-use chrono::DateTime;
-use chrono::Utc;
 use lazy_static::lazy_static;
 use log::{error, info, debug};
 use reqwest;
 use std::fs;
 
 use super::error::AuthError;
-use super::model::{HistoryReport, Weather, ZoneState};
+use super::model::{Weather, ZoneState};
 
 use super::api::{
     AuthStartResponse, AuthTokensErrorResponse, AuthTokensResponse, MeApiResponse,
-    WeatherApiResponse, ZoneDayReportApiResponse, ZonesApiResponse,
+    WeatherApiResponse, ZonesApiResponse,
 };
 
 const AUTH_PENDING_MESSAGE: &str = "authorization_pending";
@@ -146,59 +143,6 @@ impl Client {
         debug!("{:#?}", weather_api_response);
 
         weather_api_response
-    }
-
-    pub fn merge_history(
-        &mut self,
-        history: &mut HashMap<String, HistoryReport>,
-        report: HistoryReport,
-    ) {
-        match history.get_mut(&report.name) {
-            Some(r) => r.inside_temperature.extend(report.inside_temperature),
-            None => {
-                history.insert(report.name.clone(), report);
-            }
-        }
-    }
-
-    pub async fn history(&mut self) -> HashMap<String, HistoryReport> {
-        // get last month
-        let mut date = Utc::now();
-
-        let mut history = HashMap::new();
-
-        for zone in self.retrieve_zones().await {
-            for _ in 1..30 {
-                date -= chrono::Duration::days(1);
-                info!("Retrieving history for {}", date.format("%Y-%m-%d"));
-
-                let today = self.history_date(&zone, date).await;
-
-                self.merge_history(&mut history, today)
-            }
-        }
-
-        history
-    }
-
-    pub async fn history_date(&mut self, zone: &ZoneState, date: DateTime<Utc>) -> HistoryReport {
-        let endpoint = format!("/api/v2/homes/{}/zones/{}/dayReport", self.home_id, zone.id);
-        let mut url = self.base_url.join(&endpoint).unwrap();
-        url.set_query(Some(format!("date={}", date.format("%Y-%m-%d")).as_str()));
-
-        let inside_temperature = self
-            .get(url)
-            .await
-            .expect("Unable to connect")
-            .json::<ZoneDayReportApiResponse>()
-            .await
-            .expect("Unable to deserialize")
-            .convert_inside_temperature();
-
-        HistoryReport {
-            name: zone.name.clone(),
-            inside_temperature,
-        }
     }
 
     /// Refresh the API access token if it expired.
