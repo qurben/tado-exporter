@@ -2,3 +2,5 @@
 **/*.rs.bk
 
 tokens.json
+.tado_token
+.DS_Store

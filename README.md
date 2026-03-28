@@ -58,18 +58,19 @@ $ cargo build --release
 In order to run the exporter, type the following command (arguments are optional):
 
 ```bash
-$ export EXPORTER_TICKER=10
-$ export EXPORTER_USERNAME="my-username@acme.tld"
-$ export EXPORTER_PASSWORD="your-password"
+$ export EXPORTER_TICKER=60 #default
 $ ./tado-exporter
 --- tado° exporter configuration ---
 Ticker seconds: 10
-Username: my-username@acme.tld
-Password: your-password
-Client secret: wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc
+Client ID: 1bb50063-6b0c-4d11-bd99-387f4a91cc46
 ------------------------------------
 [2020-02-29T08:56:19Z INFO  tado_exporter] starting tado° exporter on address: V4(0.0.0.0:9898)
-[2020-02-29T08:56:19Z INFO  tado_exporter] waiting for the first tick in 10 seconds...
+[2026-03-28T09:40:21Z INFO  tado_exporter::tado::client] Started device authentication flow with URL https://login.tado.com/oauth2/device?user_code=XXXXX
+[2026-03-28T09:40:21Z INFO  tado_exporter::tado::client] Device authentication flow still pending, will retry. URL https://login.tado.com/oauth2/device?user_code=XXXXX
+
+[2026-03-28T09:40:26Z INFO  tado_exporter::tado::client] Device authentication flow still pending, will retry. URL https://login.tado.com/oauth2/device?user_code=XXXXX
+
+[2026-03-28T09:40:31Z INFO  tado_exporter::tado::client] Device authentication flow completed
 [2020-02-29T08:56:30Z INFO  tado_exporter::tado::client] retrieving zone details for Office...
 [2020-02-29T08:56:30Z INFO  tado_exporter::tado::client] retrieving zone details for Kitchen...
 [2020-02-29T08:56:30Z INFO  tado_exporter::tado::client] retrieving zone details for Living Room...

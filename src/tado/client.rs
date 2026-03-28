@@ -8,7 +8,7 @@ use std::vec::Vec;
 use chrono::DateTime;
 use chrono::Utc;
 use lazy_static::lazy_static;
-use log::{error, info};
+use log::{error, info, debug};
 use reqwest;
 use std::fs;
 
@@ -21,7 +21,7 @@ use super::api::{
 };
 
 const AUTH_PENDING_MESSAGE: &str = "authorization_pending";
-const TOKENS_FILE: &str = "tokens.json";
+const TOKENS_FILE: &str = ".tado_token";
 
 lazy_static! {
     // TODO: POST DEVICE - https://login.tado.com/oauth2/device
@@ -38,7 +38,8 @@ pub struct Client {
 
     // API Authentication information.
     client_id: String,
-    tokens: AuthTokensResponse,
+    access_token: String,
+    refresh_token: String,
     tokens_refresh_by: Instant,
 
     home_id: i32,
@@ -55,11 +56,8 @@ impl Client {
             base_url,
             hops_url,
             client_id,
-            tokens: AuthTokensResponse {
-                access_token: String::default(),
-                expires_in: 0,
-                refresh_token: String::default(),
-            },
+            access_token: String::default(),
+            refresh_token: String::default(),
             tokens_refresh_by: Instant::now(),
             home_id: 0,
         }
@@ -93,12 +91,11 @@ impl Client {
             .send()
             .await?;
         let start = resp.json::<AuthStartResponse>().await?;
+        debug!("{:#?}", start);
         info!(
             "Started device authentication flow with URL {}",
             start.verification_uri_complete
         );
-
-        // TODO: run through login flow.
 
         // Wait for API tokens to be returned once the flow is complete.
         self.wait_for_tokens(start).await?;
@@ -110,7 +107,7 @@ impl Client {
             .get(url)
             .header(
                 "Authorization",
-                format!("Bearer {}", self.tokens.access_token),
+                format!("Bearer {}", self.access_token),
             )
             .send()
             .await
@@ -120,7 +117,10 @@ impl Client {
         let url = self.base_url.join("/api/v2/me").unwrap();
         let resp = self.get(url).await?;
 
-        resp.json::<MeApiResponse>().await
+        let me_api_response = resp.json::<MeApiResponse>().await?;
+        debug!("{:#?}", me_api_response);
+
+        Ok(me_api_response)
     }
 
     async fn zones(&mut self) -> Result<Vec<ZonesApiResponse>, reqwest::Error> {
@@ -129,7 +129,10 @@ impl Client {
 
         let resp = self.get(url).await?;
 
-        resp.json::<Vec<ZonesApiResponse>>().await
+        let zones_api_reponse = resp.json::<Vec<ZonesApiResponse>>().await?;
+        debug!("{:#?}", zones_api_reponse);
+
+        Ok(zones_api_reponse)
     }
 
     async fn weather(&self) -> Result<WeatherApiResponse, reqwest::Error> {
@@ -138,7 +141,11 @@ impl Client {
 
         let resp = self.get(url).await?;
 
-        resp.json::<WeatherApiResponse>().await
+        let weather_api_response = resp.json::<WeatherApiResponse>().await;
+
+        debug!("{:#?}", weather_api_response);
+
+        weather_api_response
     }
 
     pub fn merge_history(
@@ -203,8 +210,9 @@ impl Client {
         let refresh_params = [
             ("client_id", self.client_id.as_str()),
             ("grant_type", "refresh_token"),
-            ("refresh_token", self.tokens.refresh_token.as_str()),
+            ("refresh_token", self.refresh_token.as_str()),
         ];
+        debug!("Requesting refesh token");
         let resp = self
             .http_client
             .post(AUTH_TOKEN_URL.clone())
@@ -213,10 +221,11 @@ impl Client {
             .await?;
 
         let tokens = resp.json::<AuthTokensResponse>().await?;
+        debug!("{:#?}", tokens);
+
         self.set_tokens(tokens)
             .expect("Unable to write auth tokens");
 
-        info!("API access tokens refreshed");
         Ok(())
     }
 
@@ -287,9 +296,10 @@ impl Client {
         // Reduce the tokens validity slightly to refresh before they expire.
         let expires_in = tokens.expires_in - 10;
 
-        File::create(TOKENS_FILE)?.write_all(serde_json::to_string(&tokens.clone())?.as_bytes())?;
+        File::create(TOKENS_FILE)?.write_all((&tokens.refresh_token.clone()).as_bytes())?;
 
-        self.tokens = tokens;
+        self.access_token = tokens.access_token;
+        self.refresh_token = tokens.refresh_token;
         self.tokens_refresh_by = Instant::now() + Duration::from_secs(expires_in);
 
         Ok(())
@@ -298,7 +308,9 @@ impl Client {
     fn load_tokens(&mut self) -> Result<(), Error> {
         if let Ok(json) = fs::read_to_string(TOKENS_FILE) {
             // Ignore if file is not there
-            self.tokens = serde_json::from_str::<AuthTokensResponse>(&json)?;
+            self.refresh_token = json;
+
+            debug!("Loaded refresh token")
         }
 
         Ok(())
@@ -321,6 +333,7 @@ impl Client {
             match resp.status() {
                 reqwest::StatusCode::OK => {
                     let tokens = resp.json::<AuthTokensResponse>().await?;
+                    debug!("{:#?}", tokens);
                     self.set_tokens(tokens)
                         .expect("Unable to write auth tokens");
                     info!("Device authentication flow completed");
@@ -342,7 +355,7 @@ impl Client {
                     return Err(AuthError::UnexpectedStatus(status, url));
                 }
             }
-            info!("Device authentication flow still pending, will retry");
+            info!("Device authentication flow still pending, will retry. URL {}", start.verification_uri_complete);
             tokio::time::sleep(Duration::from_secs(start.interval)).await;
         }
         Err(AuthError::Timeout)
