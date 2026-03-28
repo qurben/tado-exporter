@@ -55,14 +55,9 @@ fn run_ticker(config: config_loader::Config) {
             return;
         }
 
-        info!("waiting for the first tick in {} seconds...", config.ticker);
-
         // Use a ticker instead of sleeping within the loop.
         // This prevents drift as the ticker keeps counting down during refresh, unlike sleep.
         let mut ticker = tokio::time::interval(Duration::from_secs(config.ticker));
-        ticker.tick().await;
-
-        metrics::set_history(tado_client.history().await);
 
         loop {
             ticker.tick().await;
