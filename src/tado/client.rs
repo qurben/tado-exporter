@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use std::vec::Vec;
 
 use lazy_static::lazy_static;
-use log::{error, info, debug};
+use log::{debug, error, info};
 use reqwest;
 use std::fs;
 
@@ -102,10 +102,7 @@ impl Client {
     async fn get(&self, url: reqwest::Url) -> Result<reqwest::Response, reqwest::Error> {
         self.http_client
             .get(url)
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.access_token),
-            )
+            .header("Authorization", format!("Bearer {}", self.access_token))
             .send()
             .await
     }
@@ -299,7 +296,10 @@ impl Client {
                     return Err(AuthError::UnexpectedStatus(status, url));
                 }
             }
-            info!("Device authentication flow still pending, will retry. URL {}", start.verification_uri_complete);
+            info!(
+                "Device authentication flow still pending, will retry. URL {}",
+                start.verification_uri_complete
+            );
             tokio::time::sleep(Duration::from_secs(start.interval)).await;
         }
         Err(AuthError::Timeout)

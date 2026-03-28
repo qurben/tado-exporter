@@ -3,13 +3,12 @@ use super::{
         ActivityDataPointsHeatingPowerApiResponse, SensorDataPointsHumidityApiResponse,
         SensorDataPointsInsideTemperatureApiResponse, WeatherApiResponse,
         WeatherOutsideTemperatureApiResponse, WeatherSolarIntensityApiResponse,
-        ZoneStateOpenWindowApiResponse,
-        ZoneStateSensorDataPointsApiResponse, ZoneStateSettingApiResponse,
-        ZoneStateSettingTemperatureApiResponse, ZonesApiResponse,
+        ZoneStateOpenWindowApiResponse, ZoneStateSensorDataPointsApiResponse,
+        ZoneStateSettingApiResponse, ZoneStateSettingTemperatureApiResponse, ZonesApiResponse,
     },
     model::{
-        HeatingPower, Humidity, SingleTemperature, SolarIntensity, Temperature, Weather,
-        ZoneState, ZoneStateOpenWindow, ZoneStateSensorDataPoints, ZoneStateSetting,
+        HeatingPower, Humidity, SingleTemperature, SolarIntensity, Temperature, Weather, ZoneState,
+        ZoneStateOpenWindow, ZoneStateSensorDataPoints, ZoneStateSetting,
     },
 };
 
