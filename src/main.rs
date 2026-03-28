@@ -41,9 +41,7 @@ async fn main() {
 async fn route(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     info!("{}", req.uri());
 
-    match req.uri().path() {
-        _ => metrics::renderer(req).await,
-    }
+    metrics::renderer(req).await
 }
 
 fn run_ticker(config: config_loader::Config) {

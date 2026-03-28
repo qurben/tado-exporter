@@ -34,7 +34,7 @@ pub struct Client {
 
     // API Authentication information.
     client_id: String,
-    token_file :String,
+    token_file: String,
     access_token: String,
     refresh_token: String,
     tokens_refresh_by: Instant,
@@ -47,7 +47,12 @@ impl Client {
         Client::with_base_url(BASE_URL.clone(), HOPS_URL.clone(), client_id, token_file)
     }
 
-    fn with_base_url(base_url: reqwest::Url, hops_url: reqwest::Url, client_id: String, token_file: String) -> Client {
+    fn with_base_url(
+        base_url: reqwest::Url,
+        hops_url: reqwest::Url,
+        client_id: String,
+        token_file: String,
+    ) -> Client {
         Client {
             http_client: reqwest::Client::new(),
             base_url,
@@ -238,7 +243,7 @@ impl Client {
         // Reduce the tokens validity slightly to refresh before they expire.
         let expires_in = tokens.expires_in - 10;
 
-        File::create(&self.token_file)?.write_all((&tokens.refresh_token.clone()).as_bytes())?;
+        File::create(&self.token_file)?.write_all(tokens.refresh_token.as_bytes())?;
 
         self.access_token = tokens.access_token;
         self.refresh_token = tokens.refresh_token;
@@ -334,7 +339,7 @@ mod tests {
             "https://example.com".parse().unwrap(),
             "https://example.com".parse().unwrap(),
             "client_id".to_string(),
-            ".token_file".to_string()
+            ".token_file".to_string(),
         );
 
         assert_eq!(client.client_id, "client_id");
@@ -396,7 +401,7 @@ mod tests {
             mock_server.uri().parse().unwrap(),
             mock_server.uri().parse().unwrap(),
             "client_secret".to_string(),
-            ".token_file".to_string()
+            ".token_file".to_string(),
         );
 
         // WHEN
