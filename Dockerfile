@@ -14,6 +14,12 @@ RUN rustup toolchain install stable
 # Work only on AMD64, NO CROSS COMPILE Tested on Windows
 FROM builder as builder-amd64
 ENV TARGET=x86_64-unknown-linux-gnu
+RUN dpkg --add-architecture amd64 && \
+    apt update && \
+    apt install -y libssl-dev:amd64 g++-x86-64-linux-gnu  && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/x86_64-linux-gnu-gcc
 
 # Work only on ARM64, NO CROSS COMPILE Tested OSX
 FROM builder as builder-arm64
